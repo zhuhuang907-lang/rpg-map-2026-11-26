@@ -189,6 +189,7 @@ start ai.js && {
   run "宣战名分（讨逆复仇收复吊民伐罪开疆）、不宣而战的后果、做官的奏请与擅启边衅、议和；国计民生每月收支照户口农业灾情赋税算、政策工程有后果；地名不串年代（真点按钮）" 120 env PLAY="$ROOT/web/play.html" node warfisc.js
   run "周边各族也画也能玩、君主自己划分政区（改名改隶分置定都筑城）、州府看得到户口（照地理志推、写依据）" 120 env PLAY="$ROOT/web/play.html" node frontier.js
   run "户口经济照时代、矿产开闭、流寇生成流动破城与招抚" 300 env PLAY="$ROOT/web/play.html" node era_econ.js
+  run "打字与长局：输入法选字不吞字、选字回车不发出、后台恢复会回来、三十回摘要压成章" 300 env PLAY="$ROOT/web/play.html" node storyfix.js
   run "每个时期都分政权画：五代十国长安一带不空、各国和中原王朝不同色、DeepSeek 并成一家也照内置史料分开、各时期要紧城池归对政权" 120 env PLAY="$ROOT/web/play.html" node realms.js
   run "人物页身边和远处分开（远处写信遣使）、不摆出处引文、真人主角不添虚构下人、中古的虚构名字像那时的士人" 120 env PLAY="$ROOT/web/play.html" node circle.js
   run "势力页天下各家全列、自家不列成别人、不留空白；人的本事只写品第不写数" 120 env PLAY="$ROOT/web/play.html" node power.js
