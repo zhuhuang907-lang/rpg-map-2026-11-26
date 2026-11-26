@@ -22,6 +22,7 @@ const path = require('path');
     if (!(popGrowRate(760, '河北') < 0)) bad.push('安史乱中河北不在减');
     if (!(popGrowRate(1100, '江南') > 0.5)) bad.push('北宋江南增得太慢');
     if (!(popGrowRate(1640, '江南') < 0)) bad.push('明末江南不在减');
+    for (const y of [-500, 2000]) { const r = popGrowRate(y, '江南'); if (!(r >= -3 && r <= 1.5)) bad.push(`公元${y}年的年率跑到界外：${r}`); }
     // 4 矿产：开闭年代对得上（佛山铁明以后、个旧锡明以后、铜录山汉以后闭）
     const at = (lon, lat, y) => minesNear({ lon, lat }, y).map(m => m[0]);
     if (!at(113.1, 23.0, 1760).includes('佛山铁')) bad.push('1760 年佛山没有铁');
@@ -33,6 +34,8 @@ const path = require('path');
     s2.territory = [{ place: '佛山', pop: 200000, loyalty: 60 }, { place: '大同', pop: 100000, loyalty: 60 }];
     const ch = cityHtml(s2, '佛山'); if (!/矿产/.test(ch) || !/佛山铁/.test(ch)) bad.push('佛山城池卡没写铁矿');
     const MR = mineRevenue(s2); if (!(MR.sum > 0) || !MR.list.some(x => /佛山铁|大同煤/.test(x.name))) bad.push('矿课没算进来：' + JSON.stringify(MR));
+    const s6 = newSave({ name: '弘历', gender: '男', age: 45, role: '皇帝', gregorianYear: 1760, month: 6, day: 1, place: '北京', polity: '清' }); S = s6;
+    const fp = fiscPop(s6); if (!(fp > 1e7)) bad.push('皇帝治下户口合计为零（税基不随户口走）：' + fp);
     // 6 流寇：连年旱蝗、加派、民心散，才有人聚起来；聚起来会挪地方、破城就粮；官军近了会散；也能招抚
     const s3 = newSave({ name: '孙传庭', gender: '男', age: 45, role: '陕西巡抚', gregorianYear: 1628, month: 6, day: 1, place: '西安', polity: '明' }); S = s3;
     const M = mapUnits(s3); s3.cities = s3.cities || {};
@@ -51,6 +54,16 @@ const path = require('path');
     const T = rebelThreat(s4); let amn = null; if (T && T.band) amn = threatAct(s4, 'amnesty');
     if (!amn || arr(s4.forces).some(f => /王二部/.test(f.name)) === false) bad.push('出钱招抚没把人编进来：' + JSON.stringify(amn));
     if (arr(s4.bands).length) bad.push('招抚了流寇还在外头');
+    // 破城弃去：原先是「失」的城，流寇走了要还回「失」，不能把别家的旧账抹掉
+    const s5 = newSave({ name: '孙传庭', gender: '男', age: 45, role: '陕西巡抚', gregorianYear: 1628, month: 6, day: 1, place: '西安', polity: '明' }); S = s5;
+    const M5 = mapUnits(s5), u5 = M5.L2.find(x => /西安/.test(x.n)) || M5.L2[0];
+    s5.mapOwn = {}; for (const u of M5.L2) s5.mapOwn[geoStem(u.n)] = { owner: '闯', turn: 1, st: '失' };
+    s5.cities = {}; s5.cities[u5.n] = { cheng: 5, loyalty: 20, ev: [] };
+    s5.bands = [{ id: 'ky', name: '王二', leader: '王二', kind: '饥民', cause: '岁饥', at: u5.n, lon: u5.lon, lat: u5.lat, men: 50000, morale: 50, org: 40, heat: 5, hist: [[1628, 6, u5.n, u5.lon, u5.lat, '5万']], held: [] }];
+    let stem2 = null;
+    for (let i = 0; i < 8 && !stem2; i++) { s5.clock = CAL.nextMonth(s5.clock); kouchMonthly(s5, 1); const hh = arr(arr(s5.bands)[0] && arr(s5.bands)[0].held); if (hh.length) stem2 = hh[0].stem; }
+    if (!stem2) bad.push('流寇五万人、城防五点，八个月没破城');
+    else { arr(arr(s5.bands)[0].held)[0].until = Math.floor(ymOf(s5.clock)) - 1; s5.clock = CAL.nextMonth(s5.clock); kouchMonthly(s5, 1); const mo2 = s5.mapOwn[stem2]; if (!mo2 || mo2.st !== '失') bad.push('流寇弃城后原状态没还回去：' + JSON.stringify(mo2)); }
     return bad;
   });
   if (errs.length) { console.log('不合格 ' + errs.slice(0, 3).join('；')); process.exit(1); }
