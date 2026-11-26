@@ -867,9 +867,9 @@ const netFail = m => /连不上|连接超时|连接被|中途断开|找不到服
 /** 桌面版写剧情：先走游戏程序；它连不上 DeepSeek 而浏览器连得上，就自动改由浏览器直连，以后都这样 */
 async function deskSample(input, opts = {}) {
   if (opts.provider === 'glm') { try { return await localSample(input, opts); } catch (e) { if (!e || e.code === 'cancelled' || !netFail(e.message)) throw e; return glmDirect(input, opts); } }
-  // 直连只是临时退路：每五分钟、或连续直连八次，回头试一次后台；后台通了马上改回来
-  const retryLocal = DS_DIRECT && !opts.resumeJob && (Date.now() - DS_DIRECT_AT > 5 * 60e3 || DS_DIRECT_TRIES >= 8);
-  if (DS_DIRECT && !opts.resumeJob && !retryLocal) { DS_DIRECT_TRIES++; return directSample(input, opts); }
+  // 直连只是临时退路：满五分钟回头试一次后台（不按次数，免得一回合十来次调用回回都去撞一遍）；后台通了马上改回来
+  const retryLocal = DS_DIRECT && !opts.resumeJob && Date.now() - DS_DIRECT_AT > 5 * 60e3;
+  if (DS_DIRECT && !opts.resumeJob && !retryLocal) return directSample(input, opts);
   try { const r = await localSample(input, opts); if (DS_DIRECT) { dsDirectClear(); noteErr('后台已恢复', '改回由游戏程序调用 DeepSeek'); } return r; }
   catch (e) {
     if (!e || e.code === 'cancelled' || !netFail(e.message)) throw e;
@@ -17721,6 +17721,7 @@ const entShow = (el) => { if (!S || !el) return; let c = $('#entCard'); if (!c) 
 document.addEventListener('click', e => { const el = e.target && e.target.closest && e.target.closest('.ent'); if (el) entShow(el); else if (!(e.target.closest && e.target.closest('#entCard'))) { const c = $('#entCard'); if (c) c.hidden = true; } });   // 手机上点一下出卡片
 document.addEventListener('compositionstart', e => { if (e.target && e.target.id === 'said') IME_ON = true; }, true);
 document.addEventListener('compositionend', e => { if (e.target && e.target.id === 'said') { IME_ON = false; IME_END_AT = Date.now(); setTimeout(() => { if (RENDER_DEFER) { RENDER_DEFER = false; try { render(); } catch (_) { /* 下一帧再画 */ } } }, 0); } }, true);
+document.addEventListener('blur', e => { if (e.target && e.target.id === 'said') { IME_ON = false; IME_END_AT = 0; if (RENDER_DEFER) { RENDER_DEFER = false; setTimeout(() => { try { render(); } catch (_) {} }, 0); } } }, true);   // 选字中途点了别处，输入法状态要放开，不能把回车一直当组字
 document.addEventListener('keydown', e => { if (e.target && e.target.id === 'sideFind' && e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sideFind(e.target.value); setTimeout(() => { const i = $('#sideFind'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 0); } });
 document.addEventListener('mouseover', e => { const el = e.target && e.target.closest && e.target.closest('.ent'); if (el) entShow(el); else { const c = $('#entCard'); if (c && !(e.target.closest && e.target.closest('#entCard'))) c.hidden = true; } });
 document.addEventListener('click', async e => {
