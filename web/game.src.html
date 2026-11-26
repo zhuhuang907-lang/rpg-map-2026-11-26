@@ -13647,11 +13647,11 @@ async function compactMemory(s) {
   let text = '';
   try {
     const r = await callClaude(`把下面这局历史模拟游戏较早的三十回合经过，压成一段四百字以内的章节摘要：按时间先后，只留事实（谁、何时、在哪、做了什么、结果、钱粮与名位的变化、结下的恩怨与约定），不加评论，不丢要紧的人名地名数目。只输出摘要正文。\n\n主角：${s.protagonist.name}，${s.protagonist.role}\n\n` + old.map(x => `第${x.turn}回合（${x.when}）：${x.text}`).join('\n'), null, { json: false, maxTokens: 1500, temperature: 0.2, kind: '修史' }, 'quick');
-    text = cut(String(r.text || '').trim(), 500);
+    text = cut(String(r.text || '').trim(), 650);
   } catch (e) { if (e && e.code === 'cancelled') return 'cancelled'; }
   if (text.length < 40) text = cut(old.map(x => x.text).join('；'), 500);
   s.chapters = arr(s.chapters).concat([{ from: old[0].when, to: old[old.length - 1].when, text }]);
-  while (s.chapters.length > 12) { const [a, b] = s.chapters; s.chapters.splice(0, 2, { from: a.from, to: b.to, text: cut(a.text + '；' + b.text, 700) }); }
+  while (s.chapters.length > 20) { const [a, b] = s.chapters; s.chapters.splice(0, 2, { from: a.from, to: b.to, text: cut(a.text + '；' + b.text, 1000) }); }
   s.summaries = s.summaries.slice(24);
 }
 
