@@ -329,7 +329,7 @@ const num = v => (v === null || v === '' || v === undefined || !Number.isFinite(
 // 账号模式先关着（代码留着，以后要用把这里改成 true）。关着时不要求登录；以前登录过的，照旧用那个账号名下的 Key 和存档，不丢
 const ACCOUNTS_ON = false;
 // 写正文的温度：太高了 DeepSeek 爱编、爱跑偏，史实错得多；压低些，宁可平实
-const STORY_T = 0.7;
+const STORY_T = 0.6;
 const WHO = (() => { try { return localStorage.getItem('hrpg:who') || ''; } catch (_) { return ''; } })();
 const LK = k => WHO && /^hrpg:/.test(k) && !/^hrpg:(accounts|who|tscale)$/.test(k) && !/^hrpg:u:/.test(k) ? 'hrpg:u:' + WHO + ':' + k.slice(5) : k;
 const lsGet = k => { try { return localStorage.getItem(LK(k)); } catch (_) { return null; } };
@@ -692,7 +692,12 @@ async function exportReport() {
 const plainWhy = w => String(w || '').split(' :: ')[0].trim();   // 服务端报错里「::」后面是原始返回，玩家不用看
 /* 浏览器直连 DeepSeek：本机游戏程序被防火墙、杀毒软件或代理拦着连不上时，浏览器能上网就由浏览器直接连（DeepSeek 允许本机页面跨域调用）。
    保存 Key 时、玩到一半连不上时自动切过来，玩家不用管。Key 只存在这台电脑的浏览器里 */
-let DS_DIRECT = lsGet('hrpg:dsdirect') === '1';
+/* 浏览器直连只是后台连不上时的临时退路：旧版把它永久存成 '1'，一次网络抖动以后就再也不走后台了（玩家：「deepseek 每次都不调用后台」）。
+   现在只记时间，十分钟后自动回头试后台；连续直连八次也回头试一次；后台一通则清掉。 */
+let DS_DIRECT = false, DS_DIRECT_AT = 0, DS_DIRECT_TRIES = 0;
+try { const raw = lsGet('hrpg:dsdirect'); if (raw && raw !== '1') { const v = JSON.parse(raw); if (v && Number.isFinite(+v.at) && Date.now() - +v.at < 10 * 60e3) { DS_DIRECT = true; DS_DIRECT_AT = +v.at; } else lsSet('hrpg:dsdirect', null); } else if (raw === '1') lsSet('hrpg:dsdirect', null); } catch (_) { lsSet('hrpg:dsdirect', null); }
+const dsDirectSet = () => { DS_DIRECT = true; DS_DIRECT_AT = Date.now(); DS_DIRECT_TRIES = 0; lsSet('hrpg:dsdirect', JSON.stringify({ at: DS_DIRECT_AT })); };
+const dsDirectClear = () => { if (DS_DIRECT || lsGet('hrpg:dsdirect')) { DS_DIRECT = false; DS_DIRECT_AT = 0; DS_DIRECT_TRIES = 0; lsSet('hrpg:dsdirect', null); } };
 const DS_HINT = { 401: 'DeepSeek 说 Key 不对或已失效：请到 platform.deepseek.com 的「API keys」重新复制一个', 402: 'DeepSeek 账户余额不足：请到 platform.deepseek.com 充值（新账户没有赠送额度）', 403: 'DeepSeek 拒绝了这个 Key（没有权限或被封）', 429: 'DeepSeek 说请求太频繁或额度用完了，稍等再试', 500: 'DeepSeek 服务出错，稍后再试', 502: 'DeepSeek 服务暂时不可用，稍后再试', 503: 'DeepSeek 服务繁忙，稍后再试' };
 async function dsKey() {
   let k = lsGet('hrpg:dskey') || '';
@@ -862,12 +867,14 @@ const netFail = m => /连不上|连接超时|连接被|中途断开|找不到服
 /** 桌面版写剧情：先走游戏程序；它连不上 DeepSeek 而浏览器连得上，就自动改由浏览器直连，以后都这样 */
 async function deskSample(input, opts = {}) {
   if (opts.provider === 'glm') { try { return await localSample(input, opts); } catch (e) { if (!e || e.code === 'cancelled' || !netFail(e.message)) throw e; return glmDirect(input, opts); } }
-  if (DS_DIRECT && !opts.resumeJob) return directSample(input, opts);
-  try { return await localSample(input, opts); }
+  // 直连只是临时退路：每五分钟、或连续直连八次，回头试一次后台；后台通了马上改回来
+  const retryLocal = DS_DIRECT && !opts.resumeJob && (Date.now() - DS_DIRECT_AT > 5 * 60e3 || DS_DIRECT_TRIES >= 8);
+  if (DS_DIRECT && !opts.resumeJob && !retryLocal) { DS_DIRECT_TRIES++; return directSample(input, opts); }
+  try { const r = await localSample(input, opts); if (DS_DIRECT) { dsDirectClear(); noteErr('后台已恢复', '改回由游戏程序调用 DeepSeek'); } return r; }
   catch (e) {
     if (!e || e.code === 'cancelled' || !netFail(e.message)) throw e;
     const r = await directSample(input, opts);   // 浏览器也连不上就照实报
-    DS_DIRECT = true; lsSet('hrpg:dsdirect', '1'); noteErr('改由浏览器直连 DeepSeek', String(e.message || ''));
+    if (!DS_DIRECT) { dsDirectSet(); noteErr('改由浏览器直连 DeepSeek', String(e.message || '')); }
     return r;
   }
 }
@@ -1531,9 +1538,9 @@ const ECON_RULES = [
   [/^(经济与生意|本地行情|岁入岁出)/, c => c.eco, 900, 'head'],
   [/^不在眼前的人/, null, 500, 'head'],
   [/^时间在走/, null, 900, 'head'],
-  [/^前情提要/, null, 1600, 'tail'],
+  [/^前情提要/, null, 2400, 'tail'],
   [/^定本/, null, 1500, 'tail'],
-  [/^前几章/, null, 800, 'tail'],
+  [/^前几章/, null, 2000, 'tail'],
   [/^年谱/, null, 500, 'tail'],
   [/^学问手艺/, null, 400, 'head'],
   [/^人物各项/, null, 600, 'head'],
@@ -1545,7 +1552,7 @@ const ECON_RULES = [
   [/^(联网查到的资料|这一回联网查到的资料|翻到的资料)/, null, 1500, 'head'],
   // 块名一长（「本地官员名册（此刻在任；……）」）以前切不开，这几块从来没裁过（R-255 成本审计：写正文一次三万五千字，其中「目标」一块连带名册、地理、升迁之制共四千五）
   [/^本地官员名册/, null, 900, 'head'],
-  [/^早年旧事/, null, 1000, 'tail'],
+  [/^早年旧事/, null, 1600, 'tail'],
   [/^(制度程序|本朝制度|衙门程序)/, c => c.official || c.adm, 900, 'head'],
   [/^(古代人的想法|通用推演)/, null, 500, 'head'],
   [/^(档案馆里|仅 GM 知道)/, null, 400, 'tail'],
@@ -13635,17 +13642,17 @@ async function worldTick(s) {
 
 /** 长局不走样：摘要多了，把最早的三十回合压成一章，章节一直带着 */
 async function compactMemory(s) {
-  const old = arr(s.summaries).slice(0, 30);
-  if (old.length < 30) return;
+  const old = arr(s.summaries).slice(0, 24);
+  if (old.length < 24) return;
   let text = '';
   try {
-    const r = await callClaude(`把下面这局历史模拟游戏较早的三十回合经过，压成一段四百字以内的章节摘要：按时间先后，只留事实（谁、何时、在哪、做了什么、结果、钱粮与名位的变化、结下的恩怨与约定），不加评论，不丢要紧的人名地名数目。只输出摘要正文。\n\n主角：${s.protagonist.name}，${s.protagonist.role}\n\n` + old.map(x => `第${x.turn}回合（${x.when}）：${x.text}`).join('\n'), null, { json: false, maxTokens: 1500, temperature: 0.2, kind: '修史', fast: true }, 'quick');
+    const r = await callClaude(`把下面这局历史模拟游戏较早的三十回合经过，压成一段四百字以内的章节摘要：按时间先后，只留事实（谁、何时、在哪、做了什么、结果、钱粮与名位的变化、结下的恩怨与约定），不加评论，不丢要紧的人名地名数目。只输出摘要正文。\n\n主角：${s.protagonist.name}，${s.protagonist.role}\n\n` + old.map(x => `第${x.turn}回合（${x.when}）：${x.text}`).join('\n'), null, { json: false, maxTokens: 1500, temperature: 0.2, kind: '修史' }, 'quick');
     text = cut(String(r.text || '').trim(), 500);
   } catch (e) { if (e && e.code === 'cancelled') return 'cancelled'; }
   if (text.length < 40) text = cut(old.map(x => x.text).join('；'), 500);
   s.chapters = arr(s.chapters).concat([{ from: old[0].when, to: old[old.length - 1].when, text }]);
   while (s.chapters.length > 12) { const [a, b] = s.chapters; s.chapters.splice(0, 2, { from: a.from, to: b.to, text: cut(a.text + '；' + b.text, 700) }); }
-  s.summaries = s.summaries.slice(30);
+  s.summaries = s.summaries.slice(24);
 }
 
 /* ========== 账册 → 给 AI 的材料 ========== */
@@ -13827,7 +13834,7 @@ function fiscalLine(s) {
 }
 /** 早年旧事：正文清掉以后留的摘要（R-164） */
 function memoryBlock(s) {
-  const M = arr(s.memoryCore).slice(-24); if (!M.length) return '';
+  const M = arr(s.memoryCore).slice(-36); if (!M.length) return '';
   return '【早年旧事（正文已不存，只留这些要紧的；写到从前的事照此，不另编）】\n' + M.map(x => '· ' + x).join('\n');
 }
 function blocks(s, forStory) {
@@ -13914,7 +13921,7 @@ function blocks(s, forStory) {
   if (pl.length) L.push('【地理册（以此为准，前后不能矛盾）】\n' + (forStory ? pl.filter(([k]) => String(CUR_SAID).includes(k.slice(0, 2))).concat(pl.slice(-3)).filter((x, i, A) => A.indexOf(x) === i) : TP.has('地图') ? pl.slice(-40) : pl.filter(([k]) => (String(CUR_SAID) + TOPIC_TXT).includes(k.slice(0, 2))).concat(pl.slice(-8)).filter((x, i, A) => A.indexOf(x) === i)).map(([k, v]) => `· ${k}：今${v.now || '？'}，属${v.belong || '？'}；${v.from || ''}${v.note ? '；' + v.note : ''}`).join('\n'));
   if (arr(s.chronicle).length) L.push('【年谱（已经发生的人生变化）】\n' + s.chronicle.slice(forStory ? -6 : TP.has('历史') || TP.has('家宅') ? -30 : -10).map(x => `· ${x.when}：${x.who ? x.who + '，' : ''}${x.what}`).join('\n'));
   if (arr(s.gmNotes).length) L.push('【仅 GM 知道（玩家看不到；按真实情形决定何时浮出，也可能不了了之）】\n' + s.gmNotes.slice(forStory ? -6 : -12).map(n => `· 第${n.turn}回合：${n.text}`).join('\n'));
-  const sums = arr(s.summaries).slice(forStory ? -8 : TP.has('历史') ? -30 : -12);   // 更早的经过由档案馆按这一回的话召回
+  const sums = arr(s.summaries).slice(forStory ? -14 : TP.has('历史') ? -40 : -20);   // 更早的经过由档案馆按这一回的话召回
   if (sums.length) L.push('【前情提要】\n' + sums.map(x => `第${x.turn}回合（${x.when}）：${x.text}`).join('\n'));
   if (!forStory && s.turn < 3) L.push(`【这个身份常见的路子（只是参考，玩家怎么做都行）】${id.ways}；家业看：${id.estate}`);
   return L.join('\n\n');
@@ -15009,6 +15016,7 @@ function recapTail(s, said, span) {
   const mine = arr(s.chat).filter(c => c.role === 'me' && c.text).slice(-3).map(c => one(c.text, 60));   // 这一回的话写完正文才进 chat，这里都是前几步的
   const prevG = arr(s.chat).filter(c => c.role === 'gm' && c.text).slice(-1)[0];
   const L = [`\n\n【主角】${P.name || ''}，${[P.role, id].filter(Boolean).join('；')}；此刻在${(s.place && s.place.full) || ''}，${s.clock ? timeText(s.clock) : ''}。写他时照这个身份、这个处境，别人照这个身份待他。`];
+  if (arr(s.chapters).length || arr(s.memoryCore).length) L.push('【长局连续性】从前的人、地方、恩怨、许诺照【前几章】【早年旧事】【前情提要】接着写，不推翻、不重来；材料里没有的人名、地名、官职不新造。');
   if (mine.length) L.push(`【前面几步主角做了】${mine.join(' → ')}（这些已经做过、有了结果，接着往下写，不重来、不忘）`);
   if (prevG) L.push(`【上一回停在】${String(prevG.text).replace(/\s+/g, '').slice(-160)}`);
   const sd = String(said || '').trim();
@@ -16442,6 +16450,7 @@ function newSave0(p) {
 
 /* ========== 画面 ========== */
 let S = null, VIEW = 'start', TAB = 'board', STREAM = '', THINK_T0 = 0, ERRMSG = '', EDITING = false, SIDE_FOLD = true, PENDING_SAID = '';
+let IME_ON = false, IME_END_AT = 0, RENDER_DEFER = false;   // 拼音/五笔选字时不许重画输入框（会把正在组的字吞掉），也不许把选字的回车当成发出
 function setBusy(on) { BUSY = on; if (on) THINK_T0 = Date.now(); try { render(); } catch (_) { /* render 自己会兜住；这里再保一层，不让忙碌状态卡住 */ } if (on) setTimeout(() => { const el = document.querySelector('.thinking'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 30); }
 setInterval(() => { if (BUSY) { const el = $('#secs'); if (el) el.textContent = Math.round((Date.now() - THINK_T0) / 1000);
   // 显示「正忙」却没有在写的这一回（上一步出错没收尾）：二十秒后自己放开，发出键重新能点，不让玩家以为卡死了
@@ -16544,6 +16553,8 @@ function render() {
   const app = document.querySelector('#app'); if (app && !document.querySelector('#renderErr')) app.insertAdjacentHTML('afterbegin', `<div id="renderErr" class="err" style="margin:8px 0">页面有一块画不出来（${esc(RENDER_ERR.slice(0, 120))}），已记进问题报告；游戏照常能玩，可以接着写下一步，或在「设置」里导出问题报告。</div>`);
 }
 function render0() {
+  // 输入法正在选字：先不重画（重画会替换 textarea，把组字中的拼音/五笔码吞掉）；选完字再画
+  if (IME_ON && typeof document !== 'undefined' && document.activeElement && document.activeElement.id === 'said') { RENDER_DEFER = true; return; }
   if (PERF && BUSY) { const t = Date.now(); if (PHASE !== PERF.cur) { if (PERF.cur) PERF.ph[PERF.cur] = (PERF.ph[PERF.cur] || 0) + (t - PERF.last); PERF.cur = PHASE; PERF.last = t; } }
   /* 不做「内容签名相同就跳过」：月结会改国势、民生、家底这些散在几十处的账，签名漏一处就是页面不刷新（2026-11-11 实测踩过）。
      省重绘靠上面一帧合并 + 后台存档节流，正确性优先（R-189）。 */
@@ -16652,6 +16663,7 @@ const cleanKey = v => String(v || '').replace(/[\uFF01-\uFF5E]/g, c => String.fr
 function keyBox() {
   const open = !KEY.has || KEY_OPEN || !!KEY.bad;
   return `<div class="h"><span class="seal">钥</span>DeepSeek Key<span class="note">只存在你自己电脑上；剧情用你自己的 DeepSeek 额度来写</span></div>
+    ${DS_DIRECT ? `<div class="err" style="margin:4px 0;font-size:12.5px">现在走浏览器直连：DeepSeek 的请求没经过游戏程序（后台）。后台这时连不上，或是上回网络抖了一下留下的；五分钟后会自动回头试。也可以点 <button class="link" id="bDsRetry">重试后台</button>。</div>` : ''}
     ${KEY.has && !KEY_OPEN ? `<div class="row" style="margin-top:0">${KEY.bad ? `<span class="err" style="margin:0">✗ Key 尾号 ${esc(KEY.tail)} 试连没通：${esc(plainWhy(KEY.bad))}</span>` : `<span class="savest">✓ 已接上 DeepSeek（Key 尾号 ${esc(KEY.tail)}，型号 ${esc(KEY.model)}）</span>`}${open ? '' : '<button class="link" id="bKeyOpen">换 Key</button><button class="link" id="bNet">检查网络</button><button class="link" id="bSelfTest2">联网自检</button>'}</div>${KEY.poor ? '<div class="err">DeepSeek 说这个账户余额不足：到 platform.deepseek.com 充值后直接接着玩，Key 不用换。</div>' : ''}${SELFTEST && !open ? `<div id="selfBox2">${SELFTEST}</div>` : ''}` : ''}
     ${open ? `<div class="howto" style="grid-template-columns:1fr"><div>
       <b>${KEY.has ? '换一个 Key' : '第一次玩：先粘贴 DeepSeek 的 Key'}</b>
@@ -17322,7 +17334,7 @@ function bgJobs(s0, d, g) {
     { id: 'agenda', msg: '理一理这个月手头的事', due: () => agendaDue(s0), run: () => buildAgenda(s0).catch(e => { s0.agFail = s0.turn; throw e; }), needs: ['press'] },
     { id: 'estate', msg: '立家底', due: () => s0.estateDue, run: async () => { try { await buildEstate(s0, s0.estateStory || undefined); } finally { if (!s0.estateDue) delete s0.estateStory; } }, ex: true },
     { id: 'digest', msg: '研读开局查到的资料，整理成年代志', due: () => !d && arr(s0.research).length && arr(s0.almanac).length < 5, run: () => digestResearch(s0) },
-    { id: 'compact', msg: '整理较早的经过', due: () => arr(s0.summaries).length > 60, run: () => compactMemory(s0) },
+    { id: 'compact', msg: '整理较早的经过', due: () => arr(s0.summaries).length >= 30, run: () => compactMemory(s0) },
     { id: 'pack', msg: '联网整理这几年的史料', due: () => packNeed(s0), run: () => ensureHistPack(s0) },
     { id: 'sync', msg: '按月联网同步此刻前后的史事', due: () => syncNeed(s0), run: () => ensureSync(s0) },
     { id: 'world', msg: '看天下大势的走向', due: () => d && SETTINGS.world !== false && needTick(s0, d), run: async () => { s0.fateTick = false; const r = await worldTick(s0); if (g && (r.changes.length || r.ripples.length || arr(r.moves).length)) g.extra = Object.assign(g.extra || {}, { worldTick: r }); }, ex: true, needs: ['sync', 'pack'] },
@@ -17699,7 +17711,7 @@ document.addEventListener('input', keepCustom); document.addEventListener('chang
 document.addEventListener('toggle', e => { if (e.target && e.target.id === 'dCustom') CUSTOM_OPEN = e.target.open; }, true);
 document.addEventListener('keydown', e => {
   // 回车就发（R-260：玩家本能按回车发不出去）；Shift+回车换行；输入法选字时的回车不算
-  if (e.target.id === 'said' && e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); const bs = $('#bSend'); if (bs && !bs.disabled) bs.click(); }
+  if (e.target.id === 'said' && e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229 && !IME_ON && Date.now() - IME_END_AT > 80) { e.preventDefault(); const bs = $('#bSend'); if (bs && !bs.disabled) bs.click(); }
   if ((e.target.id === 'kIn' || e.target.id === 'kModel') && e.key === 'Enter') { e.preventDefault(); const b = $('#bKeySave'); if (b) b.click(); }
   if ((e.target.id === 'aPw' || e.target.id === 'aName') && e.key === 'Enter') { e.preventDefault(); const b = $('#bLogin'); if (b) b.click(); }
   if (e.target.id === 'regenNote' && e.key === 'Enter') { e.preventDefault(); const b = $('#bRegenGo'); if (b) b.click(); }
@@ -17707,6 +17719,8 @@ document.addEventListener('keydown', e => {
 });
 const entShow = (el) => { if (!S || !el) return; let c = $('#entCard'); if (!c) { c = document.createElement('div'); c.id = 'entCard'; document.body.appendChild(c); } c.innerHTML = entCard(S, el.dataset.ent); const r = el.getBoundingClientRect(); c.style.left = Math.max(8, Math.min(window.innerWidth - 290, r.left)) + 'px'; c.style.top = (r.bottom + 6 + 160 > window.innerHeight ? r.top - 6 - c.offsetHeight : r.bottom + 6) + 'px'; c.hidden = false; };
 document.addEventListener('click', e => { const el = e.target && e.target.closest && e.target.closest('.ent'); if (el) entShow(el); else if (!(e.target.closest && e.target.closest('#entCard'))) { const c = $('#entCard'); if (c) c.hidden = true; } });   // 手机上点一下出卡片
+document.addEventListener('compositionstart', e => { if (e.target && e.target.id === 'said') IME_ON = true; }, true);
+document.addEventListener('compositionend', e => { if (e.target && e.target.id === 'said') { IME_ON = false; IME_END_AT = Date.now(); setTimeout(() => { if (RENDER_DEFER) { RENDER_DEFER = false; try { render(); } catch (_) { /* 下一帧再画 */ } } }, 0); } }, true);
 document.addEventListener('keydown', e => { if (e.target && e.target.id === 'sideFind' && e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sideFind(e.target.value); setTimeout(() => { const i = $('#sideFind'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 0); } });
 document.addEventListener('mouseover', e => { const el = e.target && e.target.closest && e.target.closest('.ent'); if (el) entShow(el); else { const c = $('#entCard'); if (c && !(e.target.closest && e.target.closest('#entCard'))) c.hidden = true; } });
 document.addEventListener('click', async e => {
@@ -17988,9 +18002,9 @@ document.addEventListener('click', async e => {
       if (k) lsSet('hrpg:dskey', k);
       // 游戏程序连不上 DeepSeek（防火墙、杀毒软件、代理拦着）：马上改由浏览器直接试连，通了就以后都这样走
       if (r.ok && r.test && !r.test.ok && netFail(r.test.why)) {
-        try { await directSample('只回复两个字：正常', { maxTokens: 20, json: false, temperature: 0 }); DS_DIRECT = true; lsSet('hrpg:dsdirect', '1'); r.test = { ok: true, model: KEY.model, direct: true }; }
+        try { await directSample('只回复两个字：正常', { maxTokens: 20, json: false, temperature: 0 }); dsDirectSet(); r.test = { ok: true, model: KEY.model, direct: true }; }
         catch (e2) { r.test.why = (e2 && e2.message) || r.test.why; }
-      } else if (r.ok && r.test && r.test.ok) { DS_DIRECT = false; lsSet('hrpg:dsdirect', null); }
+      } else if (r.ok && r.test && r.test.ok) { dsDirectClear(); }
       if (!r.ok) KEYMSG = '没保存上：' + (r.why || '未知原因');
       else if (r.test && r.test.ok) { KEYMSG = r.test.direct ? '✓ 已保存，已接上 DeepSeek，可以开始玩了（这台电脑的游戏程序被防火墙或杀毒软件拦着，已自动改由浏览器直接连，不用管它）' : `✓ 已保存，试连成功（${r.test.model || ''}）`; KEY_OPEN = false; const el = $('#kIn'); if (el) el.value = ''; }
       else { const w = plainWhy(r.test && r.test.why); KEYMSG = '已保存，但试连没通：' + w + (/Key|余额|权限/.test(w) ? '。请核对 Key 后重新粘贴。' : '。Key 已经存下了，网络好了就能用；点「检查网络」看看卡在哪。'); const el = $('#kIn'); if (el) el.value = ''; }
@@ -18006,6 +18020,7 @@ document.addEventListener('click', async e => {
     catch (e) { UPDINFO = { why: e.message || String(e) }; }
     render(); return;
   }
+  if (t.id === 'bDsRetry') { dsDirectClear(); ERRMSG = '已改回由游戏程序调用 DeepSeek；下一步若后台还连不上，会自动再退到浏览器直连'; render(); return; }
   if (t.id === 'bNet') {
     if (NETCHECKING) return; NETCHECKING = true;
     t.disabled = true; t.textContent = '检查中…';
