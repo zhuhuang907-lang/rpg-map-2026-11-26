@@ -1716,7 +1716,7 @@ function ledgerLiteInput(s, said, story, hidden, span, ruling) {
 /* ========== 存档（claude.ai 账号 + 本浏览器各存一份，读取取新的） ========== */
 let SAMPLE = null, DB = null, UID = null, READY = false;
 /* 在哪儿跑：claude.ai 里（用浏览者自己的 Claude）/ 桌面版游戏里（用玩家自己的 DeepSeek Key，存档在本机） */
-const BUILD = '20261126020941';
+const BUILD = '20261126021456';
 /** 版本号：三个版本（桌面、网页、claude.ai）从同一份源文件生成，显示同一串；改了哪一套就把那一套的号加一 */
 const VERSIONS = { game: '0.8.0', military: 'V6', identity: 'V5', context: 'V2', review: 'V2', organization: 'V1', officials: 'V8', world: 'V8', save: '兼容（旧档读得进）' };
 const versionLine = () => `Game ${VERSIONS.game} · 身份 ${VERSIONS.identity} · 材料 ${VERSIONS.context} · 审稿 ${VERSIONS.review} · 自家势力 ${VERSIONS.organization} · 世界 ${VERSIONS.world} · 军政 ${VERSIONS.military} · 存档 ${VERSIONS.save}`;
@@ -10509,7 +10509,7 @@ const POP_REG_BOX = [   // [名, 西, 东, 南, 北]，照山川、经济区划�
 ];
 const POP_REG_N = { 关中: 25, 河东: 25, 河北: 40, 山东: 35, 中原: 45, 江淮: 25, 江南: 35, 荆湖: 40, 四川: 50, 岭南: 40, 福建: 15, 云贵: 30, 河西: 15, 辽东: 10, 漠北: 15, 西域: 25, 青藏: 10 };
 const POP_ECON = { 关中: { n: 6, s: 6, c: 10 }, 河东: { n: 2, s: 2, c: 4 }, 河北: { n: 4, s: 4, c: 6 }, 山东: { n: 6, s: 4, c: 5 }, 中原: { n: 6, s: 6, c: 8 }, 江淮: { n: 5, s: 8, c: 6 }, 江南: { n: 4, s: 18, c: 6 }, 荆湖: { n: 5, s: 4, c: 5 }, 四川: { n: 8, s: 6, c: 5 }, 岭南: { n: 2, s: 10, c: 3 }, 福建: { n: 0, s: 12, c: 3 }, 云贵: { n: -8, s: -6, c: -4 }, 河西: { n: -10, s: -2, c: -2 }, 辽东: { n: -4, s: -4, c: 2 }, 漠北: { n: -20, s: -18, c: -8 }, 西域: { n: -14, s: -4, c: -2 }, 青藏: { n: -20, s: -16, c: -6 } };
-const POP_CAP = new Set(['长安', '京兆府', '洛阳', '河南府', '开封', '开封府', '北京', '顺天府', '南京', '应天府', '江宁府', '杭州', '临安', '成都', '成都府', '广州', '扬州', '太原', '太原府', '西安', '天京', '武昌', '江陵', '荆州', '苏州', '苏州府', '松江', '松江府']);
+const POP_CAP = new Set(['长安', '京兆府', '洛阳', '河南府', '开封', '开封府', '北京', '顺天府', '南京', '应天府', '江宁府', '杭州', '临安', '成都', '成都府', '广州', '扬州', '太原', '太原府', '西安', '天京', '武昌', '江陵', '荆州', '苏州', '苏州府', '松江', '松江府', '扬州府', '杭州府', '广州府', '西安府', '成都府', '济南府', '太原府']);
 /** 都城、行在的户口另有各地的官民、匠户、商旅涌来，不止本地著录的数 */
 const popCapMul = (n, y) => /临安|杭州/.test(n) && y >= 1138 && y <= 1276 ? 1.9 : /开封/.test(n) && y >= 960 && y <= 1126 ? 1.5 : /北京|顺天/.test(n) && y >= 1421 && y <= 1911 ? 1.45 : /南京|江宁|应天/.test(n) && y >= 1368 && y <= 1421 ? 1.45 : 1;
 function popRegionOf(lon, lat) { for (const [n, x0, x1, y0, y1] of POP_REG_BOX) if (lon >= x0 && lon <= x1 && lat >= y0 && lat <= y1) return n; return lat >= 42 ? '漠北' : lon < 100 ? '西域' : lat < 26 ? '岭南' : '中原'; }
@@ -11358,6 +11358,8 @@ function kouchMonthly(s, months) {
       if ((!mo || (mo.st !== '得' && mo.st !== '叛')) && bd.men > Math.max(400, (g.troops || 500) * 1.35) && seeded(ym * 17 + bd.name.length * 31) < 0.45) {
         const C = (s.cities = s.cities || {})[bd.at] = (s.cities || {})[bd.at] || {}, pop0 = N0(cityOf(s, bd.at).pop) || 0, lost = Math.round(pop0 * (0.005 + seeded(ym + bd.men) * 0.015));
         if (N0(C.pop) != null) C.pop = Math.max(0, N0(C.pop) - lost); const P = s.popEst && s.popEst.m && s.popEst.m[bd.at]; if (P && P.pop) P.pop = Math.max(0, P.pop - lost);
+        const T0 = arr(s.territory).find(x => geoStem(x.place) === geoStem(bd.at)); if (T0 && N0(T0.pop) != null) T0.pop = Math.max(0, N0(T0.pop) - lost);   // 自家账上的户口一样要减
+        C.loyalty = Math.max(0, (N0(C.loyalty) ?? 50) - 8); if (T0) T0.loyalty = Math.max(0, (N0(T0.loyalty) ?? 50) - 8);
         C.ev = arr(C.ev).concat([{ ym, k: '兵', text: `${bd.name}破城就粮，焚掠而去`, lost }]).slice(-8);
         s.mapOwn = s.mapOwn || {}; const stem = geoStem(bd.at), prev = s.mapOwn[stem] ? { ...s.mapOwn[stem] } : null;
         s.mapOwn[stem] = { owner: bd.name, turn: s.turn, why: '流寇破城就粮', st: '叛' };
