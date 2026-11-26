@@ -8,15 +8,15 @@ const path = require('path');
   await p.goto('file://' + path.resolve(process.env.PLAY || path.join(__dirname, '../../play.html'))); await p.waitForFunction(() => typeof deskSample === 'function' && typeof compactMemory === 'function');
   const out = await p.evaluate(async () => {
     const bad = [];
-    // 1 直连退路：连续八次后回头试后台，后台通了就清掉直连
+    // 1 直连退路：满五分钟回头试后台，后台通了就清掉直连
     const oldL = localSample, oldD = directSample, oldMode = MODE;
     MODE = 'local'; DS_DIRECT = true; DS_DIRECT_AT = Date.now(); DS_DIRECT_TRIES = 0;
     localSample = async () => ({ text: 'local' }); directSample = async () => ({ text: 'direct' });
     const r1 = await deskSample('x', {});
-    DS_DIRECT_TRIES = 8;
+    DS_DIRECT_AT = Date.now() - 6 * 60e3;
     const r2 = await deskSample('x', {});
     if (r1.text !== 'direct') bad.push('后台还连着却先走了直连');
-    if (r2.text !== 'local' || DS_DIRECT) bad.push('连续直连八次后没回头试后台：' + r2.text + ' / ' + DS_DIRECT);
+    if (r2.text !== 'local' || DS_DIRECT) bad.push('满五分钟没回头试后台：' + r2.text + ' / ' + DS_DIRECT);
     localSample = oldL; directSample = oldD; MODE = oldMode; DS_DIRECT = false;
     // 2 输入法选字：重画不吞字；选字中的回车不发出
     S = newSave({ name: '测', gender: '男', age: 40, role: '布政使', gregorianYear: 1760, month: 6, day: 1, place: '北京', polity: '清' });
