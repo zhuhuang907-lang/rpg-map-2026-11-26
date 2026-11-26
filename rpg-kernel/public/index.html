@@ -1716,7 +1716,7 @@ function ledgerLiteInput(s, said, story, hidden, span, ruling) {
 /* ========== 存档（claude.ai 账号 + 本浏览器各存一份，读取取新的） ========== */
 let SAMPLE = null, DB = null, UID = null, READY = false;
 /* 在哪儿跑：claude.ai 里（用浏览者自己的 Claude）/ 桌面版游戏里（用玩家自己的 DeepSeek Key，存档在本机） */
-const BUILD = '20261126030719';
+const BUILD = '20261126031030';
 /** 版本号：三个版本（桌面、网页、claude.ai）从同一份源文件生成，显示同一串；改了哪一套就把那一套的号加一 */
 const VERSIONS = { game: '0.8.0', military: 'V6', identity: 'V5', context: 'V2', review: 'V2', organization: 'V1', officials: 'V8', world: 'V8', save: '兼容（旧档读得进）' };
 const versionLine = () => `Game ${VERSIONS.game} · 身份 ${VERSIONS.identity} · 材料 ${VERSIONS.context} · 审稿 ${VERSIONS.review} · 自家势力 ${VERSIONS.organization} · 世界 ${VERSIONS.world} · 军政 ${VERSIONS.military} · 存档 ${VERSIONS.save}`;
@@ -2638,7 +2638,7 @@ const ECON_RULES = [
   [/^时间在走/, null, 900, 'head'],
   [/^前情提要/, null, 2400, 'tail'],
   [/^定本/, null, 1500, 'tail'],
-  [/^前几章/, null, 2000, 'tail'],
+  [/^前几章/, null, 12000, 'tail'],
   [/^年谱/, null, 500, 'tail'],
   [/^学问手艺/, null, 400, 'head'],
   [/^人物各项/, null, 600, 'head'],
@@ -2650,7 +2650,7 @@ const ECON_RULES = [
   [/^(联网查到的资料|这一回联网查到的资料|翻到的资料)/, null, 1500, 'head'],
   // 块名一长（「本地官员名册（此刻在任；……）」）以前切不开，这几块从来没裁过（R-255 成本审计：写正文一次三万五千字，其中「目标」一块连带名册、地理、升迁之制共四千五）
   [/^本地官员名册/, null, 900, 'head'],
-  [/^早年旧事/, null, 1600, 'tail'],
+  [/^早年旧事/, null, 5000, 'tail'],
   [/^(制度程序|本朝制度|衙门程序)/, c => c.official || c.adm, 900, 'head'],
   [/^(古代人的想法|通用推演)/, null, 500, 'head'],
   [/^(档案馆里|仅 GM 知道)/, null, 400, 'tail'],
@@ -18721,7 +18721,11 @@ async function send(said, span, note, resume) {
       if (S.planNow) { const x = planAdopt(S, S.planNow); g.extra = Object.assign(g.extra || {}, { plan: S.planNow }); if (x) S.chronicle = arr(S.chronicle).concat([{ turn: S.turn, when: timeText(S.clock), who: S.protagonist.name, what: `${x.state === '上奏' ? '奏请' : '推行'}方略「${x.name}」` }]); S.planNow = null; }
       const aud = arr(st.audit).concat(fx.done); if (aud.length) g.audit = aud;  // 内部记下改了什么，只进问题报告，不给玩家看
       g.span = span || 'auto';
-      if (!ok) { g.extra = Object.assign(g.extra || {}, { salvaged: true }); g.unsettled = { said, span, hidden: st.hidden }; }
+      if (!ok) { g.extra = Object.assign(g.extra || {}, { salvaged: true }); g.unsettled = { said, span, hidden: st.hidden };
+        // 账没记上（格式坏了、后台抖了）也别让这一回从长局记忆里消失：摘要和档案馆照正文先存，下一回不至于当没发生过
+        if (String(st.text || '').trim()) { const turn0 = S.turn || 0, when0 = timeText(S.clock), sm = one('（账没记上，正文照存）' + st.text, 140);
+          S.summaries = arr(S.summaries).concat([{ turn: turn0, when: when0, text: sm }]).slice(-200);
+          try { ARC.add(S, { turn: turn0, when: when0, place: (S.place || {}).full || '', said: cut(said, 600), text: String(st.text), sum: one(st.text, 200), people: [] }); } catch (_) { /* 档案馆存不下就只留摘要 */ } } }
       // 先存一次：后面整理章节、推演天下要一会儿，这时关页面也不丢这一回
       S.prev = before;
       try { await store.save(S); } catch (_) { /* 后面再存 */ }
