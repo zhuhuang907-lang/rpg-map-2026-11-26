@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>女性向恋爱线·试玩</title>
+<style>
+:root{--ink:#2b2622;--paper:#f7f1e6;--line:#d8c9b4;--zhu:#a33a2a;--muted:#8a7f72}
+*{box-sizing:border-box}
+body{margin:0;background:#ece3d4;color:var(--ink);font-family:"Songti SC","Noto Serif CJK SC",serif;line-height:1.9}
+.wrap{max-width:860px;margin:0 auto;padding:20px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 0 #fff inset}
+h1{font-size:24px;margin:6px 0 2px}
+h2{font-size:18px;margin:0 0 8px;color:var(--zhu)}
+.muted{color:var(--muted);font-size:13px}
+label{display:block;margin:8px 0 2px;font-size:14px}
+select,input{font:inherit;padding:6px 8px;border:1px solid var(--line);background:#fffdf8;border-radius:4px;width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1;min-width:180px}
+button{font:inherit;padding:8px 18px;border:1px solid var(--zhu);background:var(--zhu);color:#fff;border-radius:4px;cursor:pointer}
+button.ghost{background:#fffdf8;color:var(--zhu)}
+button:disabled{opacity:.45;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.stat{background:#fffdf8;border:1px solid var(--line);border-radius:4px;padding:6px 8px;text-align:center}
+.stat b{display:block;font-size:18px}
+.stat span{font-size:12px;color:var(--muted)}
+.story{white-space:pre-wrap;font-size:16px}
+.choice{margin:8px 0;padding:10px 12px;border:1px solid var(--line);background:#fffdf8;border-radius:4px;cursor:pointer}
+.choice:hover{border-color:var(--zhu)}
+.log{max-height:260px;overflow:auto;font-size:13px;color:#4a423b;background:#fffdf8;border:1px solid var(--line);padding:8px 10px;border-radius:4px}
+.tag{display:inline-block;font-size:12px;color:var(--zhu);border:1px solid var(--zhu);border-radius:3px;padding:0 6px;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>女性向恋爱线·试玩<span class="tag">试玩页</span></h1>
+    <p class="muted">这是恋爱线的独立试玩页：不接 AI，用《唐段内容包》的相遇与火花卡跑流程，检验故事能不能玩。游戏本体里，女性向默认关闭，要在开局打开。</p>
+  </div>
+
+  <div id="setup" class="card">
+    <h2>开局</h2>
+    <div class="row">
+      <div>
+        <label>世界模式</label>
+        <select id="world">
+          <option value="史实">史实（真实唐朝）</option>
+          <option value="半架空">半架空（从某年起改史）</option>
+          <option value="全架空" selected>全架空（自造王朝，借唐制）</option>
+        </select>
+      </div>
+      <div>
+        <label>全架空模板</label>
+        <select id="template"><option>唐</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>女主姓名</label><input id="fname" value="沈令仪"></div>
+      <div>
+        <label>女主出身</label>
+        <select id="forigin">
+          <option>女商</option><option>闺秀</option><option>宫人</option><option>女医</option>
+          <option>官宦</option><option>农家</option><option>商贾</option><option>流亡</option><option>乐籍</option><option>女冠</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>男主类型</label>
+        <select id="ltype"></select>
+      </div>
+      <div>
+        <label>男主姓名（可改）</label>
+        <input id="lname" placeholder="留空则由程序起名">
+      </div>
+      <div>
+        <label>爱情故事类型</label>
+        <select id="stype"><option value="">随机</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>男主性情（冷←→热）</label><input id="ax1" type="range" min="0" max="100" value="20"></div>
+      <div><label>正←→邪</label><input id="ax2" type="range" min="0" max="100" value="20"></div>
+      <div><label>疏←→黏</label><input id="ax3" type="range" min="0" max="100" value="20"></div>
+    </div>
+    <p class="muted">男主姓名由程序按类型与时代起，也可在下一步看卡后改名（试玩页简化为自动起名）。</p>
+    <button id="bStart">开局</button>
+    <span id="err" class="muted" style="color:var(--zhu)"></span>
+  </div>
+
+  <div id="game" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div><b id="who"></b><div class="muted" id="worldLine"></div></div>
+        <div style="text-align:right"><span class="muted" id="turnLine"></span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="sFavor">0</b><span>好感</span></div>
+        <div class="stat"><b id="sSusp">0</b><span>猜疑</span></div>
+        <div class="stat"><b id="sIdent">0</b><span>身份压力</span></div>
+        <div class="stat"><b id="sQing">0</b><span>清议压力</span></div>
+      </div>
+      <div class="muted" id="actLine"></div>
+    </div>
+    <div class="card">
+      <div class="story" id="story"></div>
+      <div id="choices"></div>
+    </div>
+    <div class="card">
+      <h2>档案</h2>
+      <div class="log" id="log"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" id="bBook">一键成书（下载）</button>
+        <button class="ghost" id="bRestart">重开一局</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S = {
+  pack:null, world:'全架空', template:'唐', fname:'沈令仪', forigin:'女商',
+  lead:null, stype:'', turn:0, log:[], over:false,
+  stats:{favor:0,suspicion:0,identity:20,qingyi:0},
+  seed:1, usedSparks:new Set(), usedMeets:new Set(), usedDailies:new Set(), act:1
+};
+const $ = id => document.getElementById(id);
+const TYPE_LOCK = {
+  'st-001': ['权臣','文士'], 'st-002': ['权臣','文士','帝王/宗室'], 'st-003': ['权臣','文士','商贾','帝王/宗室'],
+  'st-004': ['武将','江湖','权臣'], 'st-005': ['权臣','文士','武将'], 'st-006': ['权臣','文士','商贾','寒门'],
+  'st-007': ['权臣','文士','商贾','寒门'], 'st-008': ['权臣','文士','商贾','寒门','帝王/宗室'],
+  'st-009': ['权臣','文士','商贾','寒门','武将'], 'st-010': ['权臣','文士','寒门','武将','江湖'],
+  'st-011': ['权臣','文士','帝王/宗室'], 'st-012': ['权臣','文士','帝王/宗室'], 'st-013': ['权臣','文士','武将','商贾'],
+  'st-014': ['武将','外族'], 'st-015': ['商贾','江湖'], 'st-016': ['武将','外族'], 'st-017': ['僧道'],
+  'st-018': ['权臣','帝王/宗室','宦官/近侍'], 'st-019': ['武将','外族'], 'st-020': ['武将','权臣']
+};
+const rnd = () => { S.seed = (S.seed * 1103515245 + 12345) & 0x7fffffff; return S.seed / 0x7fffffff; };
+const pick = a => a[Math.floor(rnd()*a.length)];
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+function nmLead(type){
+  const xing = {权臣:'裴',武将:'薛',文士:'崔', '帝王/宗室':'李',商贾:'沈',江湖:'燕',僧道:'司马',外族:'阿史那',寒门:'杜','宦官/近侍':'高'}[type] || '裴';
+  const ming = {权臣:'砚',武将:'朔',文士:'照', '帝王/宗室':'瑾',商贾:'舟',江湖:'七',僧道:'承祯',外族:'忠',寒门:'牧','宦官/近侍':'德'}[type] || '砚';
+  return xing + ming;
+}
+
+async function load(){
+  try {
+    const r = await fetch('suitang.json');
+    S.pack = await r.json();
+  } catch(e){
+    $('err').textContent = '内容包没加载上（要用本地服务器打开，不能双击文件）：' + e.message;
+    return;
+  }
+  const lt = $('ltype');
+  S.pack.leads.forEach(l => { const o=document.createElement('option'); o.value=l.type; o.textContent=l.type; lt.appendChild(o); });
+  const st = $('stype');
+  S.pack.types.forEach(t => { const o=document.createElement('option'); o.value=t.name; o.textContent=t.name; st.appendChild(o); });
+}
+
+function start(){
+  if(!S.pack) return;
+  S.world = $('world').value; S.fname = $('fname').value.trim() || '沈令仪';
+  S.forigin = $('forigin').value; S.stype = $('stype').value || pick(S.pack.types).name;
+  const type = $('ltype').value || S.pack.leads[0].type;
+  const base = S.pack.leads.find(l => l.type === type);
+  S.lead = JSON.parse(JSON.stringify(base));
+  S.lead.name = ($('lname').value || '').trim() || nmLead(type);
+  S.lead.axes = {warm:+$('ax1').value, evil:+$('ax2').value, cling:+$('ax3').value};
+  S.stats = {favor:0,suspicion:0,identity: S.forigin==='闺秀'?30:(S.forigin==='宫人'?35:(S.forigin==='女商'?20:25)), qingyi:0};
+  S.turn = 0; S.log = []; S.over = false; S.usedSparks.clear(); S.usedMeets.clear(); S.act = 1;
+  S.seed = (Date.now() % 100000) + 7;
+  $('setup').style.display='none'; $('game').style.display='block';
+  $('who').textContent = `${S.fname} × ${S.lead.name}（${S.lead.type}）`;
+  $('worldLine').textContent = S.world === '全架空' ? `大晟朝·景元三年（架空，借${S.template}制）` : (S.world === '半架空' ? '唐·开元二十五年（改史）' : '唐·开元二十五年');
+  next();
+}
+
+function actOf(t){ return t<=4?1:(t<=9?2:(t<=13?3:4)); }
+function step(){
+  S.turn++;
+  S.act = actOf(S.turn);
+  $('turnLine').textContent = `第 ${S.turn} 回`;
+  $('actLine').textContent = ['','第一幕 相逢','第二幕 相知','第三幕 风波','第四幕 归宿'][S.act];
+  upd();
+}
+
+function upd(){
+  $('sFavor').textContent = S.stats.favor;
+  $('sSusp').textContent = S.stats.suspicion;
+  $('sIdent').textContent = S.stats.identity;
+  $('sQing').textContent = S.stats.qingyi;
+  $('log').innerHTML = S.log.map(x=>`<div>第${x.t}回 · ${x.title}</div>`).join('');
+  $('log').scrollTop = 1e9;
+}
+
+function apply(d){
+  for(const k in d) S.stats[k] = clamp(S.stats[k] + d[k], 0, 100);
+}
+
+function show(title, text, choices){
+  $('story').textContent = text;
+  const box = $('choices'); box.innerHTML='';
+  choices.forEach(c=>{
+    const d=document.createElement('div'); d.className='choice';
+    d.innerHTML = `<b>${c.label}</b>`;
+    d.onclick = ()=>{ apply(c.fx); S.log.push({t:S.turn,title,label:c.label,fx:c.fx}); next(); };
+    box.appendChild(d);
+  });
+}
+
+function meet(){
+  const ms = S.lead.meet.filter(m=>!S.usedMeets.has(m.scene));
+  const m = (ms.length?pick(ms):pick(S.lead.meet));
+  S.usedMeets.add(m.scene);
+  const hookKey = S.lead.axes.warm>60 ? (rnd()>0.5?'热':'邪') : (S.lead.axes.evil>60?'邪':'冷');
+  const hook = m.hooks[hookKey] || m.hooks['冷'];
+  const text = `【${m.place}·${m.season}】${m.event}\n\n${hook}`;
+  show(m.scene, text, [
+    {label:'迎上去，问个明白', fx:{favor:6,suspicion:2,qingyi:3}},
+    {label:'先退半步，看清形势', fx:{favor:2,suspicion:0,qingyi:0}},
+    {label:'借机试探他的来路', fx:{favor:3,suspicion:5,qingyi:1}}
+  ]);
+}
+
+function spark(){
+  let pool = S.pack.sparks.filter(s=>!S.usedSparks.has(s.id));
+  const f = S.stats.favor, sp = S.stats.suspicion, idp = S.stats.identity, qp = S.stats.qingyi;
+  let fit = pool.filter(s=>{
+    const t=s.trigger||{};
+    const locked = TYPE_LOCK[s.id];
+    if(locked && !locked.includes(S.lead.type)) return false;
+    if(s.id==='st-013' && !(S.usedSparks.has('st-005')||S.usedSparks.has('st-020')||S.act>=3)) return false;
+    if(s.id==='st-020' && S.act<4) return false;
+    if((s.id==='st-006'||s.id==='st-017') && (f<70||S.act<3)) return false;
+    if(s.id==='st-007' && S.act<3) return false;
+    if(t.favor && (f<t.favor[0]||f>t.favor[1])) return false;
+    if(t.suspicion && (sp<t.suspicion[0]||sp>t.suspicion[1])) return false;
+    if(t.pressure && (idp<t.pressure[0]||idp>t.pressure[1])) return false;
+    return true;
+  });
+  if(!fit.length) fit = pool.filter(s=>!TYPE_LOCK[s.id] || TYPE_LOCK[s.id].includes(S.lead.type));
+  if(!fit.length) return null;
+  const s = pick(fit); S.usedSparks.add(s.id);
+  const text = `【${s.place}·${s.season}】${s.beat}`;
+  const base = s.stakes || '';
+  const fx = {};
+  if(/好感 \+(\d+)/.test(base)) fx.favor = Math.round(+RegExp.$1 / 2);
+  if(/清议压力 \+(\d+)/.test(base)) fx.qingyi = Math.round(+RegExp.$1 / 2);
+  if(/猜疑 \+(\d+)/.test(base)) fx.suspicion = Math.round(+RegExp.$1 / 2);
+  show(s.type + '·' + s.id, `${text}\n\n${s.lines[0]}\n${s.lines[1]}\n${s.lines[2]}\n\n（${base}）`, [
+    {label:'接他的话', fx:{favor:(fx.favor||4)+2, suspicion:-2}},
+    {label:'把话岔开', fx:{favor:(fx.favor||2), suspicion:2}},
+    {label:'把话说重些', fx:{favor:(fx.favor||3), suspicion:6, qingyi:2}}
+  ]);
+  return s;
+}
+
+function daily(){
+  const places = ['长安','扬州','凉州','潼关'];
+  const scenes = [
+    ['同游','上元夜，两人挤在人群里看灯。他把她的手拢在袖中，没说话。',{favor:4}],
+    ['帮工','她替他理一日的账，他在旁边磨墨，磨到天黑。',{favor:3}],
+    ['节令','端午，她包了粽子送去；他没吃，先让人收进冰鉴。',{favor:3,suspicion:1}],
+    ['家宴','她家宴客，他坐在末席，替她挡了三回酒。',{favor:5,qingyi:2}],
+    ['书信','他出城三日，只送来一张字条：「安。」',{favor:2,suspicion:-2}]
+  ];
+  const fresh = scenes.filter(x => !S.usedDailies.has(x[0]));
+  const row = pick(fresh.length ? fresh : scenes);
+  S.usedDailies.add(row[0]);
+  const [title,text,fx] = row;
+  show('日常·'+title, `【${pick(places)}】${text}`, [
+    {label:'把这点好记在心里', fx:fx},
+    {label:'只当寻常', fx:{favor:1}},
+    {label:'追问一句', fx:{favor:2,suspicion:2}}
+  ]);
+}
+
+function next(){
+  if(S.over) return;
+  step();
+  if(S.turn===1) return meet();
+  if(S.turn>=16){ return ending(); }
+  // act transitions force stakes
+  if(S.turn===5){ return spark(); }
+  if(S.turn===9){ S.stats.identity = Math.max(S.stats.identity, 80); return spark(); }
+  if(S.turn===13){ return spark(); }
+  const r = rnd();
+  if(r<0.72){ const s = spark(); if(s) return; }
+  daily();
+}
+
+function ending(){
+  S.over = true;
+  const {favor,suspicion,identity,qingyi} = S.stats;
+  const hadJuebie = S.usedSparks.has('st-020');
+  const hadPart = S.usedSparks.has('st-005') || hadJuebie;
+  const hadDing = S.usedSparks.has('st-006') || S.usedSparks.has('st-017');
+  let title='', text='';
+  if(hadJuebie && favor>=45){
+    title='重逢'; text='三年后扬州渡口，她先看见船头的他。两个人都没动，风把船吹近了些。';
+  } else if(hadJuebie){
+    title='死别'; text='关城破的那一夜，他把马给了她，自己留下守门。后来她再没听见过他的消息。';
+  } else if(favor>=70 && suspicion<=30){
+    if(hadDing && identity<80) { title='相守'; text='上元又至，他把修好的灯递给她，灯骨上多刻了一个字。她看了很久，说：「这次不许再弄丢了。」'; }
+    else if(identity>=80 && qingyi>=60){ title='远别'; text='婚书压在案上，谁也没有先开口。天亮时他把那盏灯留在她门口，人已经出了城门。'; }
+    else { title='相守'; text='上元又至，他把修好的灯递给她。她没问那个字，只说：「灯我收下了。」'; }
+  } else if(hadPart && favor>=40){
+    title='远别'; text='贬书下来那日，她赶到渭桥，只来得及把一包药塞进他手里。船开时谁也没回头。';
+  } else {
+    title='无缘'; text='后来她嫁了人，他调去了边州。长安的灯年年都亮，两个人再没在同一盏灯下站过。';
+  }
+  if(['甜宠','先婚后爱','平淡相守'].includes(S.stype) && !hadJuebie && favor>=60 && title!=='相守'){
+    title='相守'; text='上元又至，他把修好的灯递给她。她没问那个字，只说：「灯我收下了。」';
+  }
+  if(['虐恋','禁忌之恋'].includes(S.stype) && title==='相守' && identity>=80){
+    title='远别'; text='婚书压在案上，谁也没有先开口。天亮时他把那盏灯留在她门口，人已经出了城门。';
+  }
+  const t = `${title}\n\n${text}\n\n【四值】好感 ${favor} · 猜疑 ${suspicion} · 身份压力 ${identity} · 清议 ${qingyi}`;
+  $('story').textContent = t;
+  $('choices').innerHTML='';
+  S.log.push({t:S.turn,title:'结局·'+title,label:'',fx:{}});
+  upd();
+}
+
+function book(){
+  const lines = [];
+  lines.push(`《${S.world==='全架空'?'大晟':'唐'}·${S.stype}》`);
+  lines.push(`${S.fname} × ${S.lead.name}`);
+  lines.push('');
+  const vols = [['相逢卷',1,4],['相知卷',5,9],['风波卷',10,13],['归宿卷',14,99]];
+  vols.forEach(([v,a,b])=>{
+    const rows = S.log.filter(x=>x.t>=a&&x.t<=b);
+    if(!rows.length) return;
+    lines.push(`== ${v} ==`);
+    rows.forEach(r=>{ lines.push(`第${r.t}回　${r.title}${r.label?'（'+r.label+'）':''}`); });
+    lines.push('');
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `恋爱线试玩_${S.fname}.txt`; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+$('bStart').onclick = start;
+$('bBook').onclick = book;
+$('bRestart').onclick = ()=>location.reload();
+load();
+</script>
+</body>
+</html>
