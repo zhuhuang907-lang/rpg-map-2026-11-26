@@ -55,7 +55,7 @@ rpg-kernel/public/version.json
 
 ## 门禁（这一轮跑过的）
 
-- build ok 8710703（history 11、inst 9、arcs 215）
+- build ok 8711046（history 11、inst 9、arcs 215）
 - 提示词护栏 293 项 0 不合格
 - 规则回归 109 条 0 不合格
 - 史实跨表体检 0 处可疑
