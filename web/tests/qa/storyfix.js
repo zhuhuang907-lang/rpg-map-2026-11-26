@@ -38,6 +38,14 @@ const path = require('path');
     if (!(S.chapters.length === 1 && S.summaries.length === 6)) bad.push('三十回摘要没压成一章：' + S.chapters.length + '/' + S.summaries.length);
     if (!/【前几章/.test(blocks(S, true))) bad.push('写戏材料没带【前几章】');
     if (!/【长局连续性】/.test(recapTail(S, '看看', 'auto'))) bad.push('写戏结尾没交代长局连续性');
+    { const full = JSON.stringify(storyInput(S, '看看', 'auto', null, false, null)); if (!/【前几章/.test(full) || !/【长局连续性】/.test(full)) bad.push('整段写戏材料里没带前几章/长局连续性'); }
+    // 4 开局以后（省钱模式）压章节仍用原型号，不降快型号
+    { const oldMode = MODE, oldKey = KEY, oldS = SAMPLE; MODE = 'local'; KEY = { has: true, tail: 'x', model: 'deepseek-v4-pro' };
+      S = newSave({ name: '测', gender: '男', age: 40, role: '布政使', gregorianYear: 1760, month: 6, day: 1, place: '北京', polity: '清' }); S.settledAt = 1;
+      let seen = null; SAMPLE = async (i, o) => { seen = o; return { text: 'x' }; };
+      try { await callClaude('x', null, { json: false, kind: '修史' }); } catch (_) {}
+      SAMPLE = oldS; MODE = oldMode; KEY = oldKey;
+      if (!seen || seen.fast) bad.push('压章节在省钱模式下被降成快型号'); }
     return bad;
   });
   if (errs.length) { console.log('ERRS ' + JSON.stringify(errs.slice(0, 3))); process.exit(1); }
