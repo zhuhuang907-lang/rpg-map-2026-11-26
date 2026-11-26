@@ -1716,7 +1716,7 @@ function ledgerLiteInput(s, said, story, hidden, span, ruling) {
 /* ========== 存档（claude.ai 账号 + 本浏览器各存一份，读取取新的） ========== */
 let SAMPLE = null, DB = null, UID = null, READY = false;
 /* 在哪儿跑：claude.ai 里（用浏览者自己的 Claude）/ 桌面版游戏里（用玩家自己的 DeepSeek Key，存档在本机） */
-const BUILD = '20261125215908';
+const BUILD = '20261126020941';
 /** 版本号：三个版本（桌面、网页、claude.ai）从同一份源文件生成，显示同一串；改了哪一套就把那一套的号加一 */
 const VERSIONS = { game: '0.8.0', military: 'V6', identity: 'V5', context: 'V2', review: 'V2', organization: 'V1', officials: 'V8', world: 'V8', save: '兼容（旧档读得进）' };
 const versionLine = () => `Game ${VERSIONS.game} · 身份 ${VERSIONS.identity} · 材料 ${VERSIONS.context} · 审稿 ${VERSIONS.review} · 自家势力 ${VERSIONS.organization} · 世界 ${VERSIONS.world} · 军政 ${VERSIONS.military} · 存档 ${VERSIONS.save}`;
@@ -9596,6 +9596,7 @@ const REALM_TXT = `秦|-221|-207|B|108.94,34.27 112.45,34.62 114.35,34.79 114.49
 前凉|327|376|E1.4|89.19,42.95
 回鹘|840|866|E1.8|89.19,42.95 87.62,43.8 93.52,42.82
 俄罗斯|1858|1917|E1.6|131.9,43.1
+浩罕|1709|1876|E1.4|71.8,40.4
 王世充（郑）|619|621||112.45,34.62 113.82,34.03 114.35,34.79
 窦建德（夏）|618|621||114.49,37.07 114.56,38.14 115.3,36.34 114.4,36.3 114.97,38.52 117.02,38.21
 萧铣（梁）|618|621||112.19,30.35 112.98,28.2 114.31,30.57 110.29,25.28 111.69,29.03
@@ -9697,7 +9698,7 @@ const REALM_TXT = `秦|-221|-207|B|108.94,34.27 112.45,34.62 114.35,34.79 114.49
 清海军（刘氏）|907|916||113.26,23.13 113.6,24.81 116.64,23.67 112.45,23.06 110.09,20.9 111.77,23.15
 南汉|917|970||113.26,23.13 113.6,24.81 116.64,23.67 115.19,24.06 114.4,23.1 112.45,23.06 111.77,23.15 111.51,23.4 112.23,22.7 111.96,21.85 111.0,22.02 110.09,20.9 110.42,19.88 110.41,19.76 108.31,22.79 110.55,22.86 111.31,23.49 109.98,22.87 110.03,23.38
 南汉|951|970||110.29,25.28 110.63,24.64 111.66,24.34 109.4,24.31 109.68,23.96 112.38,24.78
-荆南|907|962|0.75|112.19,30.35 110.69,31.0 111.29,30.7
+荆南|907|962|E0.9|112.19,30.35 110.69,31.0 111.29,30.7
 定难军（党项拓跋氏）|907|1037|E1.6|108.92,37.6 110.0,37.95 110.25,37.5 108.4,37.9
 定难军（党项拓跋氏）|1002|1037|E1.6|106.29,38.02 106.27,38.47
 西夏|1038|1227||106.27,38.47 106.29,38.02 108.92,37.6 110.0,37.95 102.63,37.93 100.45,38.93 98.5,39.74 95.78,40.52 94.62,40.14 108.4,37.9
@@ -9936,7 +9937,7 @@ function realmsAt(y, m) {
   const tok = n => { const t = String(n || '').replace(/[（）()·、\s]+/g, '|').split('|').filter(Boolean); return t; }, akin = (a, b) => tok(a).some(x => tok(b).some(y => x === y || (x.length >= 2 && y.length >= 2 && (x.includes(y) || y.includes(x)))));
   // 江山时序的叫法并到游戏一贯的名下：都护府、布政司是中原王朝的军府、行省，不是另一国；瑠求、吐蕃诸部照史书的通名；日本的分期不必写在图上
   // 大长和 929 年被杨干贞所篡，改号大义宁——它的快照还沿用旧名，图上照年份改过来
-  const JS_REN = { '西汉': '汉', '东汉': '汉', '归义军（张议潮）': '归义军', '大和（日本）': '日本', '俄罗斯帝国': '俄罗斯', '西域都护府': '汉', '安西都护府': '唐', '北庭都护府': '唐', '安东都护府': '唐', '奴儿干都司': '明', '交趾布政司（1407—1427）': '明', '瑠求': '流求', '吐蕃诸部': '吐蕃', '日本（镰仓幕府）': '日本', '日本（战国）': '日本' };
+  const JS_REN = { '西汉': '汉', '东汉': '汉', '归义军（张议潮）': '归义军', '大和（日本）': '日本', '俄罗斯帝国': '俄罗斯', '楚 · 荆南': '楚', '蒙古诸部 · 东察合台': '蒙古诸部', '哈萨克 · 浩罕': '哈萨克', '克什米尔·拉达克': '克什米尔', '哈密卫（关西七卫）': '哈密卫', '静海军（交州）': '静海军', '西域都护府': '汉', '安西都护府': '唐', '北庭都护府': '唐', '安东都护府': '唐', '奴儿干都司': '明', '交趾布政司（1407—1427）': '明', '瑠求': '流求', '吐蕃诸部': '吐蕃', '日本（镰仓幕府）': '日本', '日本（战国）': '日本' };
   const jsCanon = t => { const k = String(t || '').trim(); return /^大长和/.test(k) && yv >= 928 && yv < 937 ? '大义宁' : (JS_REN[k] || k); };
   // 落在江山时序某一家里头、名字又对不上的割据（唐中后期的河朔藩镇这类）、以及标了 E 的（朔方军、定难军、高丽、杜文秀），
   // 当作那一家里的飞地，照自己够得着的远近另画
@@ -10522,9 +10523,10 @@ function popRegionPop(R, y) {
 }
 /** 这一年这一块户口按年增还是减（%）：定点常年率插值，再叠上乱世、大灾 */
 function popGrowRate(y, R) {
-  let i = 0; while (i < POP_ERA.length - 2 && POP_ERA[i + 1] <= y) i++;
-  const y0 = POP_ERA[i], y1 = POP_ERA[i + 1], k = y1 > y0 ? Math.max(0, Math.min(1, (y - y0) / (y1 - y0))) : 0, base = POP_GROW[i] + (POP_GROW[i + 1] - POP_GROW[i]) * k;
-  let v = base + (POP_REG_RATE[R] || 0); for (const [a, b, r, re] of POP_SHOCKS) if (y >= a && y <= b && re.test(R)) v += r;
+  const yy = Math.max(POP_ERA[0], Math.min(POP_ERA[POP_ERA.length - 1], y));
+  let i = 0; while (i < POP_ERA.length - 2 && POP_ERA[i + 1] <= yy) i++;
+  const y0 = POP_ERA[i], y1 = POP_ERA[i + 1], k = y1 > y0 ? Math.max(0, Math.min(1, (yy - y0) / (y1 - y0))) : 0, base = POP_GROW[i] + (POP_GROW[i + 1] - POP_GROW[i]) * k;
+  let v = base + (POP_REG_RATE[R] || 0); for (const [a, b, r, re] of POP_SHOCKS) if (yy >= a && yy <= b && re.test(R)) v += r;
   return Math.max(-3, Math.min(1.5, v));
 }
 /** 两个年份之间照年率复利（乱世、大灾按当年扣）：著录是某一年的数，推到图上这一年要走这些年，不是拿一个率一乘 */
@@ -11327,7 +11329,7 @@ function kouchMonthly(s, months) {
   const out = [], ym = Math.floor(ymOf(s.clock)), y = s.clock.y, m = s.clock.m || 1;
   s.bands = arr(s.bands).filter(bd => bd && bd.men > 0);
   // 破了城就粮的，两三个月后弃城而去，城池复归本主（流寇不守土）
-  for (const bd of s.bands) { bd.held = arr(bd.held); for (const h of bd.held) if (h.until <= ym) { const mo = (s.mapOwn || {})[h.stem]; if (mo && mo.owner === bd.name && mo.st === '叛') delete s.mapOwn[h.stem]; } bd.held = bd.held.filter(h => h.until > ym); }
+  for (const bd of s.bands) { bd.held = arr(bd.held); for (const h of bd.held) if (h.until <= ym) { const mo = (s.mapOwn || {})[h.stem]; if (mo && mo.owner === bd.name && mo.st === '叛') { if (h.prev) s.mapOwn[h.stem] = h.prev; else delete s.mapOwn[h.stem]; } } bd.held = bd.held.filter(h => h.until > ym); }
   let M; try { M = mapUnits(s); } catch (_) { M = null; }
   for (const bd of s.bands) {
     // 官军就近进剿：人少的流寇一触即散
@@ -11353,12 +11355,13 @@ function kouchMonthly(s, months) {
     }
     // 破城就粮：人比守军多就破城，开仓、裹挟、放火；不守，两三个月后走
     if (cur) { const g = garrisonGuess(s, bd.at), mo = mapStateOf(s, geoStem(bd.at));
-      if ((!mo || mo.st !== '得') && bd.men > Math.max(400, (g.troops || 500) * 1.35) && seeded(ym * 17 + bd.name.length * 31) < 0.45) {
+      if ((!mo || (mo.st !== '得' && mo.st !== '叛')) && bd.men > Math.max(400, (g.troops || 500) * 1.35) && seeded(ym * 17 + bd.name.length * 31) < 0.45) {
         const C = (s.cities = s.cities || {})[bd.at] = (s.cities || {})[bd.at] || {}, pop0 = N0(cityOf(s, bd.at).pop) || 0, lost = Math.round(pop0 * (0.005 + seeded(ym + bd.men) * 0.015));
         if (N0(C.pop) != null) C.pop = Math.max(0, N0(C.pop) - lost); const P = s.popEst && s.popEst.m && s.popEst.m[bd.at]; if (P && P.pop) P.pop = Math.max(0, P.pop - lost);
         C.ev = arr(C.ev).concat([{ ym, k: '兵', text: `${bd.name}破城就粮，焚掠而去`, lost }]).slice(-8);
-        s.mapOwn = s.mapOwn || {}; s.mapOwn[geoStem(bd.at)] = { owner: bd.name, turn: s.turn, why: '流寇破城就粮', st: '叛' };
-        bd.held = arr(bd.held).concat([{ stem: geoStem(bd.at), until: ym + 2 }]); bd.heat += 4; bd.men += Math.round(lost * 0.05);
+        s.mapOwn = s.mapOwn || {}; const stem = geoStem(bd.at), prev = s.mapOwn[stem] ? { ...s.mapOwn[stem] } : null;
+        s.mapOwn[stem] = { owner: bd.name, turn: s.turn, why: '流寇破城就粮', st: '叛' };
+        bd.held = arr(bd.held).concat([{ stem, until: ym + 2, prev }]); bd.heat += 4; bd.men += Math.round(lost * 0.05);
         out.push(`${bd.name}破${bd.at}，开仓就粮，焚掠而去（户口减${fmtN(lost, '口')}）`); s.chronicle = arr(s.chronicle).concat([{ turn: s.turn, when: timeText(s.clock), who: bd.name, what: `破${bd.at}，就粮焚掠，旋即弃去` }]);
       } }
   }
@@ -11388,7 +11391,7 @@ function threatAct(s, act) {
   const markThreat = () => { s.threatDone[T.name] = ym; };   // 真办成了才记当月（2026-11-24：以前先记后校验，点散财募勇钱不够也白耗一月）
   if (act === 'hold') { if (D.kind !== 'local' && D.kind !== 'realm' && D.kind !== 'army') { ORGMSG = '你手里没有城、没有兵，守不了城'; return null; }
     const mine = arr(s.forces).filter(f => myForce(s, f)), ours = mine.reduce((a, f) => a + (forceStats(s, f).men || N0(f.troops) || 0), 0);
-    const wpre = String(T.men).replace(/万.*$/, '').replace(/[余号称约近]/g, ''), nMen = /万/.test(T.men) ? (parseInt(T.men, 10) || ({ 数: 3, 数十: 30, 十数: 12 }[wpre]) || zhNum(wpre) || 5) * 10000 : /千/.test(T.men) ? 3000 : 2000;
+    const wpre = String(T.men).replace(/万.*$/, '').replace(/[余号称约近]/g, ''), nMen = N0(T.menRaw) || (/万/.test(T.men) ? (parseInt(T.men, 10) || ({ 数: 3, 数十: 30, 十数: 12 }[wpre]) || zhNum(wpre) || 5) * 10000 : /千/.test(T.men) ? 3000 : 2000);
     const att = Math.round(Math.min(nMen, 30000) * 0.3);   // 号称的人马多是裹挟的饥民，真来攻城的是前锋精锐，照号称的三成上下、至多一万
     const r = resolveBattle(s, { enemy: T.name + '军', enemyTroops: att, enemyQuality: '弱', place: geoCenter(s), terrain: '城池', attacker: '敌', ourForces: mine.map(f => f.name), ourTroops: mine.length ? null : Math.max(300, Math.round(((cityOf(s, geoCenter(s)) || {}).pop || 0) * 0.005)) || null, ourSide: geoCenter(s) + '守军' });
     if (!r) { ORGMSG = '城里的守军不详，守不住'; return null; } markThreat(); applyBattle(s, { ...r, lose: /败/.test(r.outcome) ? geoCenter(s) : '' });
@@ -13840,7 +13843,11 @@ async function fiscalDS(s) {
   return s.fisc;
 }
 const myTroops = s => arr(s.forces).filter(f => f && myForce(s, f)).reduce((a, f) => a + (forceStats(s, f).men || N0(f.troops) || 0), 0);
-function fiscPop(s) { const D = myDomain(s), P = (s.popEst && s.popEst.m) || {}; let n = 0; for (const pl of D.places) { const k = Object.keys(P).find(x => geoStem(x) === geoStem(pl)); if (k && P[k]) n += N0(P[k].pop) || (N0(P[k].hh) || 0) * 5; } return n || null; }
+function fiscPop(s) { const D = myDomain(s), P = (s.popEst && s.popEst.m) || {}, T = arr(s.territory); let n = 0;
+  for (const pl of D.places) { const t = T.find(x => geoStem(x.place) === geoStem(pl)); if (t && N0(t.pop)) { n += N0(t.pop); continue; }   // 自家账上有数的照账（城册每月涨落的就是它）
+    const k = Object.keys(P).find(x => geoStem(x) === geoStem(pl)); let v = k && P[k]; if (!v) v = popBaseAt(pl, s.clock.y, popCoordOf(s, pl));   // 没推过的先照内置户口底账（下一月城册就补上史料著录），不再算作零
+    n += N0(v && v.pop) || (N0(v && v.hh) || 0) * 5; }
+  return n || null; }
 function fiscAvg(s, k, dv) { const D = myDomain(s), v = D.places.map(p => cityOf(s, p)[k]).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : dv; }
 function fiscTreasury(s) { if (myDomain(s).kind === 'realm') { s.realm = s.realm || {}; return { get: () => N0(s.realm.treasury) || 0, add: v => { s.realm.treasury = Math.round((N0(s.realm.treasury) || 0) + v); if (s.gov && s.gov.stats && s.gov.stats['国库'] != null) s.gov.stats['国库'] = s.realm.treasury; } }; }
   s.gov = s.gov || { stats: {} }; s.gov.stats = s.gov.stats || {}; return { get: () => N0(s.gov.stats['库银']) || 0, add: v => { s.gov.stats['库银'] = Math.round((N0(s.gov.stats['库银']) || 0) + v); } }; }
