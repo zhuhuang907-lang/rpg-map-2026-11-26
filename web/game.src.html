@@ -1680,7 +1680,7 @@ async function callClaude(input, onReply, extra, tier) {
   if (DSM() && econTight()) { const heavy = heavyStep(S, typeof CUR_SAID !== 'undefined' ? CUR_SAID : ''), decisive = DECISIVE_RE.test(typeof CUR_SAID !== 'undefined' ? CUR_SAID : '') || arr(S && S.campaigns).some(c => /交战|围城/.test(c.state || ''));
     if (kind === '裁定' && heavy && !decisive) extra = { ...extra, light: true, thinking: false };
     if (kind === '写戏' || (kind === '改稿' && heavy)) { extra = { ...extra, thinking: false }; }   // 平常一步的改稿用快型号：真模型第九轮，初稿加改稿两次都用原型号，一回就两毛多
-    else if (!(kind === '裁定' && heavy)) extra = { ...extra, fast: true, thinking: false }; }
+    else if (!(kind === '裁定' && heavy) && kind !== '修史') extra = { ...extra, fast: true, thinking: false }; }   // 压章节摘要要用原型号：人名地名数目丢一个，往后几十回都跟着错
   if (DSM() && plain && extra && extra.temperature > 1.0) extra = { ...extra, temperature: 1.0 };
   // 分工：这一件交给 GLM 还是 DeepSeek（需求台账 R-135）；GLM 出错（不是玩家停下）自动退回 DeepSeek 再来一次
   let glmTried = false;
