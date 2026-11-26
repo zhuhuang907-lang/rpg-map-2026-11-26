@@ -17623,7 +17623,11 @@ async function send(said, span, note, resume) {
       if (S.planNow) { const x = planAdopt(S, S.planNow); g.extra = Object.assign(g.extra || {}, { plan: S.planNow }); if (x) S.chronicle = arr(S.chronicle).concat([{ turn: S.turn, when: timeText(S.clock), who: S.protagonist.name, what: `${x.state === '上奏' ? '奏请' : '推行'}方略「${x.name}」` }]); S.planNow = null; }
       const aud = arr(st.audit).concat(fx.done); if (aud.length) g.audit = aud;  // 内部记下改了什么，只进问题报告，不给玩家看
       g.span = span || 'auto';
-      if (!ok) { g.extra = Object.assign(g.extra || {}, { salvaged: true }); g.unsettled = { said, span, hidden: st.hidden }; }
+      if (!ok) { g.extra = Object.assign(g.extra || {}, { salvaged: true }); g.unsettled = { said, span, hidden: st.hidden };
+        // 账没记上（格式坏了、后台抖了）也别让这一回从长局记忆里消失：摘要和档案馆照正文先存，下一回不至于当没发生过
+        if (String(st.text || '').trim()) { const turn0 = S.turn || 0, when0 = timeText(S.clock), sm = one('（账没记上，正文照存）' + st.text, 140);
+          S.summaries = arr(S.summaries).concat([{ turn: turn0, when: when0, text: sm }]).slice(-200);
+          try { ARC.add(S, { turn: turn0, when: when0, place: (S.place || {}).full || '', said: cut(said, 600), text: String(st.text), sum: one(st.text, 200), people: [] }); } catch (_) { /* 档案馆存不下就只留摘要 */ } } }
       // 先存一次：后面整理章节、推演天下要一会儿，这时关页面也不丢这一回
       S.prev = before;
       try { await store.save(S); } catch (_) { /* 后面再存 */ }
