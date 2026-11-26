@@ -38,6 +38,7 @@ web/tests/qa.sh
 web/tests/qa/crime.js
 web/tests/qa/frontier.js
 web/tests/qa/era_econ.js（新）
+web/tests/qa/storyfix.js（新）
 web/tests/qa/longjump.js（新）
 web/tests/qa/romance.js（新）
 web/tests/qa/romanceai.js（新）
